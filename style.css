@@ -10,29 +10,31 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 20px;
+    align-items: flex-start;
+    padding: 5px;
     direction: rtl;
+    overflow-x: hidden;
 }
 
 .container {
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-    max-width: 800px;
-    width: 100%;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    max-width: var(--container-width, 800px);
+    width: auto;
+    margin-top: 10px;
 }
 
 header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 h1 {
     color: #333;
-    font-size: 2.5em;
-    margin-bottom: 20px;
+    font-size: 2.2em;
+    margin-bottom: 15px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -40,9 +42,9 @@ h1 {
     display: flex;
     justify-content: space-around;
     background: #f8f9fa;
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .game-info > div {
@@ -53,34 +55,40 @@ h1 {
 
 .controls {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    flex-direction: row;
+    gap: 15px;
     margin-bottom: 30px;
     align-items: center;
-}
-
-.file-upload {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .upload-btn {
     background: linear-gradient(45deg, #ff6b6b, #ee5a24);
     color: white;
-    padding: 12px 24px;
-    border-radius: 25px;
+    padding: 15px;
+    border-radius: 50%;
     cursor: pointer;
     font-weight: bold;
     transition: all 0.3s ease;
     border: none;
-    font-size: 1em;
+    font-size: 1.5em;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
 }
 
 .upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 #uploadCount {
@@ -88,19 +96,57 @@ h1 {
     font-size: 0.9em;
 }
 
-.game-controls {
+.difficulty-selection {
     display: flex;
-    gap: 15px;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.difficulty-selection label {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.difficulty-select {
+    padding: 10px 15px;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    font-size: 1em;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+    text-align: center;
+}
+
+.difficulty-select:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 15px;
     border: none;
-    border-radius: 25px;
+    border-radius: 50%;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 1em;
+    font-size: 1.5em;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .start-btn {
@@ -113,11 +159,6 @@ h1 {
     color: white;
 }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-}
-
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -126,26 +167,29 @@ h1 {
 
 .game-board {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    max-width: 600px;
+    grid-template-columns: repeat(var(--grid-columns, 4), 1fr);
+    gap: var(--card-gap, 12px);
+    max-width: var(--board-width, 600px);
     margin: 0 auto;
-    padding: 20px;
+    padding: var(--board-padding, 15px);
+    justify-items: center;
+    align-items: center;
 }
 
 .card {
-    aspect-ratio: 1;
+    width: var(--card-size, 100px);
+    height: var(--card-size, 100px);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
+    border-radius: var(--card-radius, 12px);
     cursor: pointer;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.6s;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
 }
 
 .card.flipped {
@@ -168,7 +212,7 @@ h1 {
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 15px;
+    border-radius: var(--card-radius, 12px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -177,7 +221,7 @@ h1 {
 .card-front {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-size: 2em;
+    font-size: var(--card-font-size, 1.5em);
 }
 
 .card-back {
@@ -190,7 +234,7 @@ h1 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: calc(var(--card-radius, 12px) - 2px);
 }
 
 .modal {
@@ -248,45 +292,49 @@ h1 {
 /* Responsive design */
 @media (max-width: 768px) {
     .container {
-        padding: 20px;
-        margin: 10px;
+        padding: 15px;
+        margin: 5px;
+        max-width: 95vw;
     }
     
     h1 {
-        font-size: 2em;
+        font-size: 1.8em;
     }
     
     .game-info {
         flex-direction: column;
-        gap: 10px;
-    }
-    
-    .game-board {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        gap: 8px;
         padding: 10px;
     }
     
     .controls {
-        gap: 15px;
-    }
-    
-    .game-controls {
         flex-direction: column;
-        width: 100%;
+        gap: 10px;
     }
     
-    .btn {
-        width: 100%;
+    .btn, .upload-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 1.8em;
+    }
+    
+    .difficulty-select {
+        min-width: 150px;
     }
 }
 
 @media (max-width: 480px) {
-    .game-board {
-        grid-template-columns: repeat(2, 1fr);
+    .container {
+        padding: 10px;
+        margin: 2px;
+        max-width: 98vw;
     }
     
-    .card-front {
+    h1 {
         font-size: 1.5em;
+    }
+    
+    .game-info {
+        padding: 8px;
     }
 }
