@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק זיכרון - התאמת תמונות</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 משחק זיכרון</h1>
+            <div class="game-info">
+                <div class="score">
+                    <span>ניקוד: </span>
+                    <span id="score">0</span>
+                </div>
+                <div class="moves">
+                    <span>מהלכים: </span>
+                    <span id="moves">0</span>
+                </div>
+                <div class="timer">
+                    <span>זמן: </span>
+                    <span id="timer">00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="file-upload">
+                <label for="imageUpload" class="upload-btn">
+                    📁 העלה את התמונות שלך
+                </label>
+                <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+                <span id="uploadCount">0 תמונות הועלו</span>
+            </div>
+            <div class="game-controls">
+                <button id="startBtn" class="btn start-btn">🎮 התחל משחק</button>
+                <button id="resetBtn" class="btn reset-btn">🔄 איפוס</button>
+            </div>
+        </div>
+
+        <div id="gameBoard" class="game-board"></div>
+
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <h2>🎉 כל הכבוד!</h2>
+                <p>השלמת את המשחק!</p>
+                <div class="final-stats">
+                    <p>ניקוד סופי: <span id="finalScore"></span></p>
+                    <p>סך המהלכים: <span id="finalMoves"></span></p>
+                    <p>זמן: <span id="finalTime"></span></p>
+                </div>
+                <button id="playAgainBtn" class="btn">שחק שוב</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
