@@ -27,17 +27,13 @@
         </header>
 
         <div class="controls">
-            <div class="file-upload">
-                <label for="imageUpload" class="upload-btn">
-                    📁 העלה את התמונות שלך
-                </label>
-                <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
-                <span id="uploadCount">0 תמונות הועלו</span>
-            </div>
-            <div class="game-controls">
-                <button id="startBtn" class="btn start-btn">🎮 התחל משחק</button>
-                <button id="resetBtn" class="btn reset-btn">🔄 איפוס</button>
-            </div>
+            <button type="button" class="btn upload-btn" onclick="if(!this.disabled) document.getElementById('imageUpload').click()" title="העלה תמונות נוספות">
+                📁
+            </button>
+            <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+            <button id="startBtn" class="btn start-btn" title="התחל משחק">▶️</button>
+            <button id="resetBtn" class="btn reset-btn" title="איפוס">🔄</button>
+            <span id="uploadCount"></span>
         </div>
 
         <div id="gameBoard" class="game-board"></div>
