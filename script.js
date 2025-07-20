@@ -25,26 +25,35 @@ class MemoryGame {
     }
 
     async loadStaticImages() {
-        // Try to load images from the static images folder
+        // Try to load image pairs from the static images folder
+        // Each pair should be named like: image1a.jpg, image1b.jpg or image1a.png, image1b.png
         const imageExtensions = ['jpg', 'png'];
-        const staticImagePaths = [];
+        this.staticImages = [];
+
         for (let i = 1; i <= 50; i++) {
             for (const ext of imageExtensions) {
-                staticImagePaths.push(`images/image${i}.${ext}`);
+                const imageA = `images/image${i}a.${ext}`;
+                const imageB = `images/image${i}b.${ext}`;
+
+                // Try to load both images in the pair
+                const [resultA, resultB] = await Promise.allSettled([
+                    this.tryLoadImage(imageA),
+                    this.tryLoadImage(imageB)
+                ]);
+
+                // If both images in the pair loaded successfully, add them as a set
+                if (resultA.status === 'fulfilled' && resultA.value &&
+                    resultB.status === 'fulfilled' && resultB.value) {
+                    this.staticImages.push({
+                        setId: i,
+                        imageA: resultA.value,
+                        imageB: resultB.value
+                    });
+                }
             }
         }
 
-        // Try to load each image and use only those that succeed
-        const loadPromises = staticImagePaths.map(path => this.tryLoadImage(path));
-        const results = await Promise.allSettled(loadPromises);
-        this.staticImages = results
-            .filter(result => result.status === 'fulfilled' && result.value)
-            .map(result => result.value);
-
-        // Fallback: if no images found, use default SVGs
-        if (this.staticImages.length === 0) {
-            this.createDefaultImages();
-        }
+        // No fallback - only use images from folder
     }
 
     tryLoadImage(src) {
@@ -58,41 +67,6 @@ class MemoryGame {
         });
     }
 
-    createDefaultImages() {
-        // Fallback: Create some default images if no static images found
-        const patterns = ['🎯', '🎮', '🎲', '🎪', '🎨', '🎭', '🎸', '🎺', '🎻', '🎹',
-            '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏓', '🏸', '🏒', '🏑',
-            '🌟', '⭐', '✨', '🌙', '☀️', '🌈', '⚡', '🔥', '💧', '🌸',
-            '🦋', '🐝', '🐞', '🦄', '🐰', '🐸', '🐻', '🦊', '🐯', '🦁',
-            '🍎', '🍊', '🍋', '🍌', '🍇', '🍓', '🍑', '🍒', '🥝', '🍍'];
-
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-            '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'];
-
-        for (let i = 0; i < Math.min(patterns.length, 50); i++) {
-            const pattern = patterns[i];
-            const color = colors[i % colors.length];
-            const svg = this.createDefaultImage(pattern, color, i + 1);
-            this.staticImages.push(svg);
-        }
-    } createDefaultImage(pattern, color, number) {
-        const svg = `
-            <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad${number}" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:${this.darkenColor(color, 20)};stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" fill="url(#grad${number})" rx="15"/>
-                <circle cx="50" cy="30" r="15" fill="rgba(255,255,255,0.2)"/>
-                <text x="50" y="35" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">${pattern}</text>
-                <text x="50" y="75" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">${number}</text>
-            </svg>
-        `;
-        return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-    }
-
     darkenColor(color, percent) {
         const num = parseInt(color.replace("#", ""), 16);
         const amt = Math.round(2.55 * percent);
@@ -102,6 +76,185 @@ class MemoryGame {
         return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
             (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
             (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
+
+    playSuccessSound() {
+        try {
+            // Create audio context for generating sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create a happy ascending melody (like a celebration)
+            const melody = [
+                { freq: 523.25, time: 0.0, duration: 0.15 },  // C5
+                { freq: 659.25, time: 0.1, duration: 0.15 },  // E5
+                { freq: 783.99, time: 0.2, duration: 0.15 },  // G5
+                { freq: 1046.5, time: 0.3, duration: 0.25 }   // C6 (octave higher)
+            ];
+
+            melody.forEach((note) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                oscillator.type = 'triangle'; // Warmer, happier sound than sine
+
+                // Create bouncy envelope for happy sound
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + note.time);
+                gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + note.time + 0.02);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.time + note.duration);
+
+                oscillator.start(audioContext.currentTime + note.time);
+                oscillator.stop(audioContext.currentTime + note.time + note.duration);
+            });
+
+            // Add a little sparkle effect with higher frequencies
+            const sparkle = [1318.5, 1568]; // E6, G6
+            sparkle.forEach((freq, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.4 + index * 0.05);
+                gainNode.gain.linearRampToValueAtTime(0.08, audioContext.currentTime + 0.42 + index * 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.55 + index * 0.05);
+
+                oscillator.start(audioContext.currentTime + 0.4 + index * 0.05);
+                oscillator.stop(audioContext.currentTime + 0.55 + index * 0.05);
+            });
+
+        } catch (error) {
+            // Silent fallback if audio context is not supported
+            console.log('Audio not supported');
+        }
+    }
+
+    playVictorySound() {
+        try {
+            // Create audio context for generating sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create an epic victory fanfare with multiple layers
+            const mainMelody = [
+                { freq: 523.25, time: 0.0, duration: 0.3, vol: 0.25 },   // C5
+                { freq: 659.25, time: 0.2, duration: 0.3, vol: 0.25 },   // E5
+                { freq: 783.99, time: 0.4, duration: 0.3, vol: 0.25 },   // G5
+                { freq: 1046.5, time: 0.6, duration: 0.4, vol: 0.3 },    // C6
+                { freq: 1318.5, time: 1.0, duration: 0.3, vol: 0.25 },   // E6
+                { freq: 1568.0, time: 1.3, duration: 0.4, vol: 0.25 },   // G6
+                { freq: 2093.0, time: 1.7, duration: 0.6, vol: 0.3 }     // C7 (final triumphant note)
+            ];
+
+            // Play main melody with square wave for boldness
+            mainMelody.forEach((note) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                oscillator.type = 'square'; // Bold, triumphant sound
+
+                // Create powerful envelope
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + note.time);
+                gainNode.gain.linearRampToValueAtTime(note.vol, audioContext.currentTime + note.time + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.time + note.duration);
+
+                oscillator.start(audioContext.currentTime + note.time);
+                oscillator.stop(audioContext.currentTime + note.time + note.duration);
+            });
+
+            // Add harmonies (fifths)
+            const harmonies = [
+                { freq: 783.99, time: 0.0, duration: 0.3, vol: 0.15 },   // G5
+                { freq: 987.77, time: 0.2, duration: 0.3, vol: 0.15 },   // B5
+                { freq: 1174.7, time: 0.4, duration: 0.3, vol: 0.15 },   // D6
+                { freq: 1568.0, time: 0.6, duration: 0.4, vol: 0.2 },    // G6
+                { freq: 1976.0, time: 1.0, duration: 0.3, vol: 0.15 },   // B6
+                { freq: 2349.3, time: 1.3, duration: 0.4, vol: 0.15 },   // D7
+                { freq: 3136.0, time: 1.7, duration: 0.6, vol: 0.2 }     // G7
+            ];
+
+            harmonies.forEach((note) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                oscillator.type = 'triangle';
+
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + note.time);
+                gainNode.gain.linearRampToValueAtTime(note.vol, audioContext.currentTime + note.time + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.time + note.duration);
+
+                oscillator.start(audioContext.currentTime + note.time);
+                oscillator.stop(audioContext.currentTime + note.time + note.duration);
+            });
+
+            // Add magical sparkle cascade
+            const sparkles = [];
+            for (let i = 0; i < 12; i++) {
+                sparkles.push({
+                    freq: 1046.5 * Math.pow(2, Math.random() * 2), // Random notes in high range
+                    time: 1.2 + i * 0.08,
+                    duration: 0.15,
+                    vol: 0.08
+                });
+            }
+
+            sparkles.forEach((note) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + note.time);
+                gainNode.gain.linearRampToValueAtTime(note.vol, audioContext.currentTime + note.time + 0.02);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + note.time + note.duration);
+
+                oscillator.start(audioContext.currentTime + note.time);
+                oscillator.stop(audioContext.currentTime + note.time + note.duration);
+            });
+
+            // Add deep bass foundation
+            const bassLine = [130.8, 164.8, 196.0, 261.6]; // C3, E3, G3, C4
+            bassLine.forEach((freq, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                const startTime = index * 0.6;
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime + startTime);
+                gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + startTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startTime + 0.5);
+
+                oscillator.start(audioContext.currentTime + startTime);
+                oscillator.stop(audioContext.currentTime + startTime + 0.5);
+            });
+
+        } catch (error) {
+            // Silent fallback if audio context is not supported
+            console.log('Audio not supported');
+        }
     }
 
     initializeElements() {
@@ -114,7 +267,6 @@ class MemoryGame {
         this.movesElement = document.getElementById('moves');
         this.timerElement = document.getElementById('timer');
         this.gameOverModal = document.getElementById('gameOverModal');
-        this.playAgainBtn = document.getElementById('playAgainBtn');
         this.finalScore = document.getElementById('finalScore');
         this.finalMoves = document.getElementById('finalMoves');
         this.finalTime = document.getElementById('finalTime');
@@ -124,7 +276,6 @@ class MemoryGame {
         this.imageUpload.addEventListener('change', (e) => this.handleImageUpload(e));
         this.startBtn.addEventListener('click', () => this.startGame());
         this.resetBtn.addEventListener('click', () => this.resetGame());
-        this.playAgainBtn.addEventListener('click', () => this.playAgain());
 
         // Close modal when clicking outside
         this.gameOverModal.addEventListener('click', (e) => {
@@ -166,6 +317,10 @@ class MemoryGame {
 
     startGame() {
         this.resetGameState();
+        
+        // Clean up any existing celebration animations
+        this.cleanupCelebrationAnimations();
+        
         this.createGameCards();
         this.renderGameBoard();
         this.startTimer();
@@ -193,15 +348,41 @@ class MemoryGame {
     }
 
     createGameCards() {
-        // Use all available images (static + uploaded)
-        const allImages = [...this.staticImages, ...this.userImages];
-
-        // Only pairs (each image appears twice)
+        // Create pairs from image sets and user images
         this.gameCards = [];
-        for (let i = 0; i < allImages.length; i++) {
-            const image = allImages[i];
-            this.gameCards.push({ id: i * 2, image, matched: false });
-            this.gameCards.push({ id: i * 2 + 1, image, matched: false });
+        let cardId = 0;
+
+        // Handle static image sets (pairs of different but related images)
+        this.staticImages.forEach((imageSet) => {
+            this.gameCards.push({
+                id: cardId++,
+                image: imageSet.imageA,
+                setId: imageSet.setId,
+                matched: false
+            });
+            this.gameCards.push({
+                id: cardId++,
+                image: imageSet.imageB,
+                setId: imageSet.setId,
+                matched: false
+            });
+        });
+
+        // Handle uploaded images (create identical pairs)
+        for (let i = 0; i < this.userImages.length; i++) {
+            const image = this.userImages[i];
+            this.gameCards.push({
+                id: cardId++,
+                image,
+                setId: `user_${i}`,
+                matched: false
+            });
+            this.gameCards.push({
+                id: cardId++,
+                image,
+                setId: `user_${i}`,
+                matched: false
+            });
         }
 
         // Shuffle the cards
@@ -337,6 +518,16 @@ class MemoryGame {
             this.moves++;
             this.updateDisplay();
 
+            // Check for immediate match and play sound right away
+            const [firstIndex, secondIndex] = this.flippedCards;
+            const firstCard = this.gameCards[firstIndex];
+            const secondCard = this.gameCards[secondIndex];
+
+            if (firstCard.setId === secondCard.setId) {
+                // Play success sound immediately when match is found
+                this.playSuccessSound();
+            }
+
             setTimeout(() => {
                 this.checkMatch();
             }, 1000);
@@ -348,8 +539,8 @@ class MemoryGame {
         const firstCard = this.gameCards[firstIndex];
         const secondCard = this.gameCards[secondIndex];
 
-        if (firstCard.image === secondCard.image) {
-            // Match found
+        if (firstCard.setId === secondCard.setId) {
+            // Match found (same set/pair)
             firstCard.matched = true;
             secondCard.matched = true;
             this.matchedPairs++;
@@ -383,6 +574,12 @@ class MemoryGame {
         this.gameStarted = false;
         this.startBtn.disabled = false;
 
+        // Play victory sound when game is completed
+        this.playVictorySound();
+
+        // Start celebration animations
+        this.startCelebrationAnimations();
+
         // Re-enable upload functionality when game completes
         const uploadBtn = document.querySelector('.upload-btn');
         uploadBtn.disabled = false;
@@ -395,13 +592,213 @@ class MemoryGame {
         this.score += timeBonus + moveBonus;
 
         this.updateDisplay();
-        this.showGameOverModal();
+
+        // Delay modal show to let animations start
+        setTimeout(() => {
+            this.showGameOverModal();
+        }, 1000);
+    }
+
+    startCelebrationAnimations() {
+        // Create confetti effect
+        this.createConfetti();
+
+        // Add pulsing effect to score
+        this.animateScoreCounter();
+
+        // Make all matched cards sparkle
+        this.sparkleMatchedCards();
+
+        // Add screen flash effect
+        this.createScreenFlash();
+    }
+
+    createConfetti() {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'];
+        const confettiContainer = document.createElement('div');
+        confettiContainer.className = 'confetti-container';
+        confettiContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+        `;
+        document.body.appendChild(confettiContainer);
+
+        // Create 50 confetti pieces
+        for (let i = 0; i < 50; i++) {
+            const confetti = document.createElement('div');
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 10 + 5;
+            const startX = Math.random() * window.innerWidth;
+            const duration = Math.random() * 3 + 2;
+            const delay = Math.random() * 2;
+
+            confetti.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                background: ${color};
+                left: ${startX}px;
+                top: -10px;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+                animation: confettiFall ${duration}s ${delay}s ease-out forwards;
+                transform: rotate(${Math.random() * 360}deg);
+            `;
+
+            confettiContainer.appendChild(confetti);
+        }
+
+        // Add CSS animation keyframes
+        if (!document.getElementById('confetti-styles')) {
+            const style = document.createElement('style');
+            style.id = 'confetti-styles';
+            style.textContent = `
+                @keyframes confettiFall {
+                    0% {
+                        transform: translateY(-10px) rotate(0deg);
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: translateY(100vh) rotate(720deg);
+                        opacity: 0;
+                    }
+                }
+                @keyframes scoreGlow {
+                    0%, 100% { 
+                        transform: scale(1);
+                        color: inherit;
+                        text-shadow: none;
+                    }
+                    50% { 
+                        transform: scale(1.2);
+                        color: #FFD700;
+                        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+                    }
+                }
+                @keyframes cardSparkle {
+                    0%, 100% { 
+                        filter: brightness(1) saturate(1);
+                        transform: scale(1);
+                    }
+                    50% { 
+                        filter: brightness(1.3) saturate(1.5);
+                        transform: scale(1.05);
+                    }
+                }
+                @keyframes screenFlash {
+                    0%, 100% { opacity: 0.1; }
+                    50% { opacity: 0.3; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Store reference to confetti container for cleanup on reset/new game
+        this.confettiContainer = confettiContainer;
+
+        // Create continuous confetti generation
+        this.confettiInterval = setInterval(() => {
+            if (this.confettiContainer && this.confettiContainer.parentNode) {
+                const confetti = document.createElement('div');
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 10 + 5;
+                const startX = Math.random() * window.innerWidth;
+                const duration = Math.random() * 3 + 2;
+
+                confetti.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: ${color};
+                    left: ${startX}px;
+                    top: -10px;
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+                    animation: confettiFall ${duration}s ease-out forwards;
+                    transform: rotate(${Math.random() * 360}deg);
+                `;
+
+                this.confettiContainer.appendChild(confetti);
+
+                // Remove individual confetti pieces after they fall
+                setTimeout(() => {
+                    if (confetti && confetti.parentNode) {
+                        confetti.parentNode.removeChild(confetti);
+                    }
+                }, duration * 1000 + 500);
+            }
+        }, 300);
+    }
+
+    animateScoreCounter() {
+        const scoreElement = this.scoreElement;
+        scoreElement.style.animation = 'scoreGlow 2s ease-in-out infinite';
+    }
+
+    sparkleMatchedCards() {
+        const matchedCards = document.querySelectorAll('.card.matched');
+        matchedCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.animation = 'cardSparkle 1.5s ease-in-out infinite';
+            }, index * 100);
+        });
+    }
+
+    createScreenFlash() {
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 70%);
+            pointer-events: none;
+            z-index: 9998;
+            animation: screenFlash 4s ease-in-out infinite;
+        `;
+        document.body.appendChild(flash);
+
+        // Store reference for cleanup on reset/new game
+        this.screenFlash = flash;
     }
 
     showGameOverModal() {
+        // Add celebratory content to modal
         this.finalScore.textContent = this.score;
         this.finalMoves.textContent = this.moves;
         this.finalTime.textContent = this.formatTime(this.timer);
+
+        const modalContent = this.gameOverModal.querySelector('.modal-content');
+
+        // Add floating animation keyframe if not exists
+        if (!document.getElementById('modal-animations')) {
+            const style = document.createElement('style');
+            style.id = 'modal-animations';
+            style.textContent = `
+                @keyframes modalBounceIn {
+                    0% { 
+                        transform: translate(-50%, -50%) scale(0.3);
+                        opacity: 0;
+                    }
+                    50% { 
+                        transform: translate(-50%, -50%) scale(1.1);
+                    }
+                    100% { 
+                        transform: translate(-50%, -50%) scale(1);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Animate modal entrance
+        modalContent.style.animation = 'modalBounceIn 0.6s ease-out';
         this.gameOverModal.style.display = 'block';
     }
 
@@ -409,21 +806,50 @@ class MemoryGame {
         this.gameOverModal.style.display = 'none';
     }
 
-    playAgain() {
-        this.closeModal();
-        this.startGame();
-    }
-
     resetGame() {
         this.resetGameState();
         this.gameBoard.innerHTML = '';
         this.startBtn.disabled = false;
+
+        // Clean up persistent celebration animations
+        this.cleanupCelebrationAnimations();
 
         // Re-enable upload functionality
         const uploadBtn = document.querySelector('.upload-btn');
         uploadBtn.disabled = false;
         uploadBtn.style.opacity = '';
         uploadBtn.style.cursor = '';
+    }
+
+    cleanupCelebrationAnimations() {
+        // Stop confetti generation
+        if (this.confettiInterval) {
+            clearInterval(this.confettiInterval);
+            this.confettiInterval = null;
+        }
+
+        // Remove confetti container
+        if (this.confettiContainer && this.confettiContainer.parentNode) {
+            this.confettiContainer.parentNode.removeChild(this.confettiContainer);
+            this.confettiContainer = null;
+        }
+
+        // Remove screen flash
+        if (this.screenFlash && this.screenFlash.parentNode) {
+            this.screenFlash.parentNode.removeChild(this.screenFlash);
+            this.screenFlash = null;
+        }
+
+        // Reset score glow animation
+        if (this.scoreElement) {
+            this.scoreElement.style.animation = '';
+        }
+
+        // Reset card sparkle animations
+        const matchedCards = document.querySelectorAll('.card.matched');
+        matchedCards.forEach(card => {
+            card.style.animation = '';
+        });
     }
 
     startTimer() {
