@@ -257,6 +257,36 @@ class MemoryGame {
         }
     }
 
+    playFailureSound() {
+        try {
+            // Create audio context for generating sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create a simple "buzz" sound for failure
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Low frequency buzz sound
+            oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+            oscillator.type = 'square'; // Harsh, buzzer-like sound
+
+            // Quick envelope - very short duration
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+
+        } catch (error) {
+            // Silent fallback if audio context is not supported
+            console.log('Audio not supported');
+        }
+    }
+
     initializeElements() {
         this.imageUpload = document.getElementById('imageUpload');
         this.uploadCount = document.getElementById('uploadCount');
@@ -317,10 +347,10 @@ class MemoryGame {
 
     startGame() {
         this.resetGameState();
-        
+
         // Clean up any existing celebration animations
         this.cleanupCelebrationAnimations();
-        
+
         this.createGameCards();
         this.renderGameBoard();
         this.startTimer();
@@ -514,6 +544,9 @@ class MemoryGame {
         cardElement.classList.add('flipped');
         this.flippedCards.push(index);
 
+        // Play flip sound immediately when card is flipped
+        this.playCardFlipSound();
+
         if (this.flippedCards.length === 2) {
             this.moves++;
             this.updateDisplay();
@@ -526,6 +559,9 @@ class MemoryGame {
             if (firstCard.setId === secondCard.setId) {
                 // Play success sound immediately when match is found
                 this.playSuccessSound();
+            } else {
+                // Play failure sound immediately when mismatch is detected
+                this.playFailureSound();
             }
 
             setTimeout(() => {
@@ -540,33 +576,34 @@ class MemoryGame {
         const secondCard = this.gameCards[secondIndex];
 
         if (firstCard.setId === secondCard.setId) {
-            // Match found (same set/pair)
-            firstCard.matched = true;
-            secondCard.matched = true;
+            // Match found - mark cards as matched
+            this.gameCards[firstIndex].matched = true;
+            this.gameCards[secondIndex].matched = true;
+
+            const firstCardElement = this.gameBoard.children[firstIndex];
+            const secondCardElement = this.gameBoard.children[secondIndex];
+
+            firstCardElement.classList.add('matched');
+            secondCardElement.classList.add('matched');
+
+            this.flippedCards = [];
             this.matchedPairs++;
-            this.score += 100;
+            this.updateScore(100);
 
-            const firstElement = this.gameBoard.children[firstIndex];
-            const secondElement = this.gameBoard.children[secondIndex];
-
-            firstElement.classList.add('matched');
-            secondElement.classList.add('matched');
-
-            // Check if game is complete
             if (this.matchedPairs === this.gameCards.length / 2) {
                 this.gameComplete();
             }
         } else {
             // No match - flip cards back
-            const firstElement = this.gameBoard.children[firstIndex];
-            const secondElement = this.gameBoard.children[secondIndex];
+            setTimeout(() => {
+                const firstCardElement = this.gameBoard.children[firstIndex];
+                const secondCardElement = this.gameBoard.children[secondIndex];
 
-            firstElement.classList.remove('flipped');
-            secondElement.classList.remove('flipped');
+                firstCardElement.classList.remove('flipped');
+                secondCardElement.classList.remove('flipped');
+                this.flippedCards = [];
+            }, 500);
         }
-
-        this.flippedCards = [];
-        this.updateDisplay();
     }
 
     gameComplete() {
@@ -877,6 +914,42 @@ class MemoryGame {
         this.scoreElement.textContent = this.score;
         this.movesElement.textContent = this.moves;
         this.timerElement.textContent = this.formatTime(this.timer);
+    }
+
+    playCardFlipSound() {
+        try {
+            // Create audio context for generating sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create a short, subtle "flip" sound
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Quick ascending tone for flip sound
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.05);
+            oscillator.type = 'triangle'; // Soft, pleasant sound
+
+            // Very quick envelope - short duration
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.03, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.08);
+
+        } catch (error) {
+            // Silent fallback if audio context is not supported
+            console.log('Audio not supported');
+        }
+    }
+
+    updateScore(points) {
+        this.score += points;
+        this.updateDisplay();
     }
 }
 
